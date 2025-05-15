@@ -27,7 +27,7 @@ pub struct ChatCompletionResponse {
     pub system_fingerprint: Option<String>,
     /// The object type, which is always chat.completion.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub object: String,
+    pub object: Option<String>,
     /// Usage statistics for the completion request.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub usage: Option<Usage>,
