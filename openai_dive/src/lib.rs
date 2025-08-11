@@ -4,7 +4,7 @@
 //!
 //! ```ini
 //! [dependencies]
-//! openai_dive = "1.0"
+//! openai_dive = "1.2"
 //! ```
 //!
 //! ## Get started
@@ -259,31 +259,33 @@
 //!             name: None,
 //!         },
 //!     ])
-//!     .response_format(ChatCompletionResponseFormat::JsonSchema(JsonSchemaBuilder::default()
-//!         .name("math_reasoning")
-//!         .schema(serde_json::json!({
-//!             "type": "object",
-//!             "properties": {
-//!                 "steps": {
-//!                     "type": "array",
-//!                     "items": {
-//!                         "type": "object",
-//!                         "properties": {
-//!                             "explanation": { "type": "string" },
-//!                             "output": { "type": "string" }
-//!                         },
-//!                         "required": ["explanation", "output"],
-//!                         "additionalProperties": false
-//!                     }
+//!     .response_format(ChatCompletionResponseFormat::JsonSchema {
+//!         json_schema: JsonSchemaBuilder::default()
+//!             .name("math_reasoning")
+//!             .schema(serde_json::json!({
+//!                 "type": "object",
+//!                 "properties": {
+//!                     "steps": {
+//!                         "type": "array",
+//!                         "items": {
+//!                             "type": "object",
+//!                             "properties": {
+//!                                 "explanation": { "type": "string" },
+//!                                 "output": { "type": "string" }
+//!                             },
+//!                             "required": ["explanation", "output"],
+//!                             "additionalProperties": false
+//!                         }
+//!                     },
+//!                     "final_answer": { "type": "string" }
 //!                 },
-//!                 "final_answer": { "type": "string" }
-//!             },
-//!             "required": ["steps", "final_answer"],
-//!             "additionalProperties": false
-//!         }))
-//!         .strict(true)
-//!         .build()?
-//!     ))
+//!                 "required": ["steps", "final_answer"],
+//!                 "additionalProperties": false
+//!             }))
+//!             .strict(true)
+//!             .build()?
+//!         }
+//!     )
 //!     .build()?;
 //!
 //! let result = client.chat().create(parameters).await?;
@@ -529,6 +531,10 @@
 //! client.set_base_url("https://api.deepseek.com");
 //! ```
 //!
+//! Use `extra_body` in `ChatCompletionParameters` to pass non-standard parameters supported by OpenAI-compatible APIs.
+//!
+//! Use `query_params` in `ChatCompletionParameters` to pass non-standard `query` parameters supported by OpenAI-compatible APIs.
+//!
 //! ### Set organization/project ID
 //!
 //! You can create multiple organizations and projects in the OpenAI platform. This allows you to group files, fine-tuned models and other resources.
@@ -582,20 +588,20 @@
 //!
 //! #### Flagship Models
 //!
-//! - Gpt45Preview (`gpt-4.5-preview`)
+//! - Gpt41 (`gpt-4.1`)
 //! - Gpt4O (`gpt-4o`)
 //! - Gpt4OAudioPreview (`gpt-4o-audio-preview`)
 //!
 //! #### Cost-Optimized Models
 //!
+//! - O4Mini (`o4-mini`)
+//! - Gpt41Nano (`gpt-4.1-nano`)
 //! - Gpt4OMini (`gpt-4o-mini`)
-//! - Gpt4OMiniAudioPreview (`gpt-4o-mini-audio-preview`)
 //!
 //! #### Reasoning Models
 //!
+//! - O4Mini (`o4-mini`)
 //! - O3Mini (`o3-mini`)
-//! - O1 (`o1`)
-//! - O1Mini (`o1-mini`)
 //!
 //! #### Tool Models
 //!
@@ -606,24 +612,26 @@
 //! #### Moderation Models
 //!
 //! - OmniModerationLatest (`omni-moderation-latest`)
-//! - TextModerationLatest (`text-moderation-latest`)
 //!
 //! #### Embedding Models
 //!
 //! - TextEmbedding3Small (`text-embedding-3-small`)
 //! - TextEmbedding3Large (`text-embedding-3-large`)
 //!
-//! #### Whisper Models
+//! #### Transcription Models
 //!
+//! - Gpt4OTranscribe (`gpt-4o-transcribe`)
 //! - Whisper1 (`whisper-1`)
 //!
 //! #### TTS Models
 //!
+//! - Gpt4OMiniTts (`gpt-4o-mini-tts`)
 //! - Tts1 (`tts-1`)
 //! - Tts1HD (`tts-1-hd`)
 //!
-//! #### DALL·E Models
+//! #### Image Models
 //!
+//! - GptImage1 (`gpt-image-1`)
 //! - DallE3 (`dall-e-3`)
 //! - DallE2 (`dall-e-2`)
 //!

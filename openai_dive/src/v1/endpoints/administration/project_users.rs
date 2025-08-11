@@ -32,7 +32,7 @@ impl ProjectUsers<'_> {
             .administration
             .client
             .get_with_query(
-                &format!("/organization/projects/{}/users", project_id),
+                &format!("/organization/projects/{project_id}/users"),
                 &query,
             )
             .await?;
@@ -48,8 +48,7 @@ impl ProjectUsers<'_> {
             .administration
             .client
             .get(&format!(
-                "/organization/projects/{}/users/{}",
-                project_id, user_id
+                "/organization/projects/{project_id}/users/{user_id}"
             ))
             .await?;
 
@@ -68,8 +67,9 @@ impl ProjectUsers<'_> {
             .administration
             .client
             .post(
-                &format!("/organization/projects/{}/users", project_id),
+                &format!("/organization/projects/{project_id}/users"),
                 &parameters,
+                None,
             )
             .await?;
 
@@ -89,8 +89,9 @@ impl ProjectUsers<'_> {
             .administration
             .client
             .post(
-                &format!("/organization/projects/{}/users/{}", project_id, user_id),
+                &format!("/organization/projects/{project_id}/users/{user_id}"),
                 &parameters,
+                None,
             )
             .await?;
 
@@ -105,8 +106,7 @@ impl ProjectUsers<'_> {
             .administration
             .client
             .delete(&format!(
-                "/organization/projects/{}/users/{}",
-                project_id, user_id
+                "/organization/projects/{project_id}/users/{user_id}"
             ))
             .await?;
 

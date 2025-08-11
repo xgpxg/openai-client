@@ -14,15 +14,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new_from_env();
 
     let parameters = ChatCompletionParametersBuilder::default()
-        .model(ReasoningModel::O1Mini.to_string())
+        .model(ReasoningModel::O3Mini.to_string())
         .messages(vec![
             ChatMessage::User {
                 content: ChatMessageContent::Text("Hello!".to_string()),
-                name: None,
+                name: Some("Judy".to_string()),
             },
             ChatMessage::User {
-                content: ChatMessageContent::Text("What is the capital of Vietnam?".to_string()),
-                name: None,
+                content: ChatMessageContent::Text("What is the capital of Singapore?".to_string()),
+                name: Some("Judy".to_string()),
             },
         ])
         .response_format(ChatCompletionResponseFormat::Text)
@@ -30,7 +30,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let result = client.chat().create(parameters).await?;
 
-    println!("{:#?}", result);
+    println!("{result:#?}");
+
+    for choice in &result.choices {
+        if let Some(text) = choice.message.text() {
+            println!("{text}");
+        }
+    }
 
     Ok(())
 }

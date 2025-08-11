@@ -53,10 +53,20 @@ pub struct EditImageParameters {
     pub image: FileUpload,
     /// A text description of the desired image(s). The maximum length is 1000 characters.
     pub prompt: String,
+    /// Allows to set transparency for the background of the generated image(s).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub background: Option<BackgroundStyle>,
     /// An additional image whose fully transparent areas (e.g. where alpha is zero) indicate where image should be edited.
     /// Must be a valid PNG file, less than 4MB, and have the same dimensions as image.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mask: Option<FileUpload>,
+    /// The quality of the image that will be generated. hd creates images with finer details and greater consistency across the image.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub quality: Option<ImageQuality>,
+    /// The mime type of the image. If not provided, the mime type will be set to application/octet-stream.
+    /// gpt-image-1 expects `image/png`, `image/jpeg` or `image/webp`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mime_type: Option<MimeType>,
     /// The model to use for image generation. Only dall-e-2 is supported at this time.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
@@ -114,6 +124,10 @@ pub enum ImageSize {
     Size512X512,
     #[serde(rename = "1024x1024")]
     Size1024X1024,
+    #[serde(rename = "1024x1536")]
+    Size1024X1536,
+    #[serde(rename = "1536x1024")]
+    Size1536X1024,
     #[serde(rename = "1792x1024")]
     Size1792X1024,
     #[serde(rename = "1024x1792")]
@@ -122,9 +136,33 @@ pub enum ImageSize {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
+pub enum BackgroundStyle {
+    Transparent,
+    Opaque,
+    Auto,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
 pub enum ImageQuality {
     Standard,
     Hd,
+    High,
+    Medium,
+    Low,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum MimeType {
+    #[serde(rename = "image/png")]
+    Png,
+    #[serde(rename = "image/jpeg")]
+    Jpeg,
+    #[serde(rename = "image/webp")]
+    Webp,
+    #[serde(rename = "application/octet-stream")]
+    OctetStream,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -234,6 +272,36 @@ impl ImageData {
     }
 }
 
+impl Display for BackgroundStyle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                BackgroundStyle::Transparent => "transparent",
+                BackgroundStyle::Opaque => "opaque",
+                BackgroundStyle::Auto => "auto",
+            }
+        )
+    }
+}
+
+impl Display for ImageQuality {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                ImageQuality::Standard => "standard",
+                ImageQuality::Hd => "hd",
+                ImageQuality::High => "high",
+                ImageQuality::Medium => "medium",
+                ImageQuality::Low => "low",
+            }
+        )
+    }
+}
+
 impl Display for ImageSize {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -243,8 +311,25 @@ impl Display for ImageSize {
                 ImageSize::Size256X256 => "256x256",
                 ImageSize::Size512X512 => "512x512",
                 ImageSize::Size1024X1024 => "1024x1024",
+                ImageSize::Size1536X1024 => "1536x1024",
+                ImageSize::Size1024X1536 => "1024x1536",
                 ImageSize::Size1792X1024 => "1792x1024",
                 ImageSize::Size1024X1792 => "1024x1792",
+            }
+        )
+    }
+}
+
+impl Display for MimeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                MimeType::Png => "image/png",
+                MimeType::Jpeg => "image/jpeg",
+                MimeType::Webp => "image/webp",
+                MimeType::OctetStream => "application/octet-stream",
             }
         )
     }

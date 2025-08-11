@@ -1,12 +1,11 @@
+use super::shared::{ReasoningEffort, WebSearchContextSize};
 use crate::v1::resources::shared::StopToken;
 use crate::v1::resources::shared::{FinishReason, Usage};
 use derive_builder::Builder;
-use serde::ser::SerializeStruct;
-use serde::{Deserialize, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::Display;
-
-use super::shared::{ReasoningEffort, WebSearchContextSize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ChatCompletionResponse {
@@ -160,12 +159,22 @@ pub struct ChatCompletionParameters {
     /// This tool searches the web for relevant results to use in a response.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub web_search_options: Option<WebSearchOptions>,
+    /// Allows to pass arbitrary json as an extra_body parameter, for specific features/openai-compatible endpoints.
+    #[serde(flatten)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extra_body: Option<Value>,
+    /// Azure OpenAI and some other providers may require special query parameters to be set on the request URL.
+    /// This field allows you to specify those query parameters.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub query_params: Option<HashMap<String, String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ChatCompletionStreamOptions {
     /// If set, an additional chunk will be streamed before the data: [DONE] message.
     pub include_usage: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub continuous_usage_stats: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -194,38 +203,12 @@ pub struct ChatCompletionFunction {
     pub parameters: serde_json::Value,
 }
 
-#[derive(Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "snake_case")]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum ChatCompletionResponseFormat {
     Text,
     JsonObject,
-    JsonSchema(JsonSchema),
-}
-
-impl Serialize for ChatCompletionResponseFormat {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match self {
-            ChatCompletionResponseFormat::Text => {
-                let mut state = serializer.serialize_struct("ChatCompletionResponseFormat", 1)?;
-                state.serialize_field("type", "text")?;
-                state.end()
-            }
-            ChatCompletionResponseFormat::JsonObject => {
-                let mut state = serializer.serialize_struct("ChatCompletionResponseFormat", 1)?;
-                state.serialize_field("type", "json_object")?;
-                state.end()
-            }
-            ChatCompletionResponseFormat::JsonSchema(json_schema) => {
-                let mut state = serializer.serialize_struct("ChatCompletionResponseFormat", 2)?;
-                state.serialize_field("type", "json_schema")?;
-                state.serialize_field("json_schema", json_schema)?;
-                state.end()
-            }
-        }
-    }
+    JsonSchema { json_schema: JsonSchema },
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Builder, Clone, PartialEq)]
@@ -303,6 +286,55 @@ pub enum ChatMessage {
         /// Tool call that this message is responding to.
         tool_call_id: String,
     },
+}
+
+impl ChatMessage {
+    /// Get the ChatMessageContent data, if it exists.
+    pub fn message(&self) -> Option<&ChatMessageContent> {
+        match self {
+            ChatMessage::Developer { content, .. }
+            | ChatMessage::System { content, .. }
+            | ChatMessage::User { content, .. }
+            | ChatMessage::Assistant {
+                content: Some(content),
+                ..
+            } => Some(content),
+            ChatMessage::Assistant { content: None, .. } => None,
+            ChatMessage::Tool { .. } => None,
+        }
+    }
+
+    /// Get the content of the message as text, if it is a simple text message.
+    pub fn text(&self) -> Option<&str> {
+        match self {
+            ChatMessage::Developer { content, .. }
+            | ChatMessage::System { content, .. }
+            | ChatMessage::User { content, .. }
+            | ChatMessage::Assistant {
+                content: Some(content),
+                ..
+            } => {
+                if let ChatMessageContent::Text(text) = content {
+                    Some(text)
+                } else {
+                    None
+                }
+            }
+            ChatMessage::Assistant { content: None, .. } => None,
+            ChatMessage::Tool { content, .. } => Some(content),
+        }
+    }
+
+    /// Get the name of the message sender, if it exists.
+    pub fn name(&self) -> Option<&str> {
+        match self {
+            ChatMessage::Developer { name, .. }
+            | ChatMessage::System { name, .. }
+            | ChatMessage::User { name, .. }
+            | ChatMessage::Assistant { name, .. } => name.as_deref(),
+            ChatMessage::Tool { .. } => None,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -615,10 +647,10 @@ pub struct ApproximateUserLocation {
 impl Display for ChatMessageContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ChatMessageContent::Text(text) => write!(f, "{}", text),
+            ChatMessageContent::Text(text) => write!(f, "{text}"),
             ChatMessageContent::ContentPart(tcp) => {
                 for part in tcp {
-                    write!(f, "{:?}", part)?;
+                    write!(f, "{part:?}")?;
                 }
                 Ok(())
             }
@@ -635,11 +667,11 @@ pub enum ChatCompletionToolType {
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "lowercase")]
-#[serde(untagged)]
 pub enum ChatCompletionToolChoice {
     None,
     Auto,
     Required,
+    #[serde(untagged)]
     ChatCompletionToolChoiceFunction(ChatCompletionToolChoiceFunction),
 }
 
@@ -703,5 +735,83 @@ impl DeltaFunction {
 
     pub fn is_empty(&self) -> bool {
         self.name.is_none() && self.arguments.is_none()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::v1::resources::chat::{
+        ChatCompletionResponseFormat, ChatCompletionToolChoice, ChatCompletionToolChoiceFunction,
+        ChatCompletionToolChoiceFunctionName, ChatCompletionToolType, JsonSchemaBuilder,
+    };
+    use serde_json;
+
+    #[test]
+    fn test_chat_completion_response_format_serialization_deserialization() {
+        let json_schema = JsonSchemaBuilder::default()
+            .description("This is a test schema".to_string())
+            .name("test_schema".to_string())
+            .schema(Some(serde_json::json!({"type": "object"})))
+            .strict(true)
+            .build()
+            .unwrap();
+
+        let response_format = ChatCompletionResponseFormat::JsonSchema { json_schema };
+
+        // Serialize the response format to a JSON string
+        let serialized = serde_json::to_string(&response_format).unwrap();
+        assert_eq!(serialized, "{\"type\":\"json_schema\",\"json_schema\":{\"description\":\"This is a test schema\",\"name\":\"test_schema\",\"schema\":{\"type\":\"object\"},\"strict\":true}}");
+
+        // Deserialize the JSON string back to a ChatCompletionResponseFormat
+        let deserialized: ChatCompletionResponseFormat = serde_json::from_str(&serialized).unwrap();
+        match deserialized {
+            ChatCompletionResponseFormat::JsonSchema { json_schema } => {
+                assert_eq!(
+                    json_schema.description,
+                    Some("This is a test schema".to_string())
+                );
+                assert_eq!(json_schema.name, "test_schema".to_string());
+                assert_eq!(
+                    json_schema.schema,
+                    Some(serde_json::json!({"type": "object"}))
+                );
+                assert_eq!(json_schema.strict, Some(true));
+            }
+            _ => panic!("Deserialized format should be JsonSchema"),
+        }
+    }
+
+    #[test]
+    fn test_chat_completion_tool_choice_required_serialization_deserialization() {
+        let tool_choice = ChatCompletionToolChoice::Required;
+
+        let serialized = serde_json::to_string(&tool_choice).unwrap();
+        assert_eq!(serialized, "\"required\"");
+
+        let deserialized: ChatCompletionToolChoice =
+            serde_json::from_str(serialized.as_str()).unwrap();
+        assert_eq!(deserialized, tool_choice)
+    }
+
+    #[test]
+    fn test_chat_completion_tool_choice_named_function_serialization_deserialization() {
+        let tool_choice = ChatCompletionToolChoice::ChatCompletionToolChoiceFunction(
+            ChatCompletionToolChoiceFunction {
+                r#type: Some(ChatCompletionToolType::Function),
+                function: ChatCompletionToolChoiceFunctionName {
+                    name: "get_current_weather".to_string(),
+                },
+            },
+        );
+
+        let serialized = serde_json::to_string(&tool_choice).unwrap();
+        assert_eq!(
+            serialized,
+            "{\"type\":\"function\",\"function\":{\"name\":\"get_current_weather\"}}"
+        );
+
+        let deserialized: ChatCompletionToolChoice =
+            serde_json::from_str(serialized.as_str()).unwrap();
+        assert_eq!(deserialized, tool_choice)
     }
 }

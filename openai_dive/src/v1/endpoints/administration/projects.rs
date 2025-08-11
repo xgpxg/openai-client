@@ -42,7 +42,7 @@ impl Projects<'_> {
         let response = self
             .administration
             .client
-            .get(&format!("/organization/projects/{}", project_id))
+            .get(&format!("/organization/projects/{project_id}"))
             .await?;
 
         let response: Project = format_response(response)?;
@@ -55,7 +55,7 @@ impl Projects<'_> {
         let response = self
             .administration
             .client
-            .post("/organization/projects", &parameters)
+            .post("/organization/projects", &parameters, None)
             .await?;
 
         let response: Project = format_response(response.data)?;
@@ -73,8 +73,9 @@ impl Projects<'_> {
             .administration
             .client
             .post(
-                &format!("/organization/projects/{}", project_id),
+                &format!("/organization/projects/{project_id}"),
                 &parameters,
+                None,
             )
             .await?;
 
@@ -89,8 +90,9 @@ impl Projects<'_> {
             .administration
             .client
             .post(
-                &format!("/organization/projects/{}/archive", project_id),
+                &format!("/organization/projects/{project_id}/archive"),
                 &(),
+                None,
             )
             .await?;
 
