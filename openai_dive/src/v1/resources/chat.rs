@@ -15,6 +15,7 @@ pub struct ChatCompletionResponse {
     /// A list of chat completion choices. Can be more than one if n is greater than 1.
     pub choices: Vec<ChatCompletionChoice>,
     /// The Unix timestamp (in seconds) of when the chat completion was created.
+    #[serde(default = "default_created")]
     pub created: u32,
     /// The model used for the chat completion.
     pub model: String,
@@ -41,6 +42,7 @@ pub struct ChatCompletionChunkResponse {
     /// A list of chat completion choices. Can be more than one if n is greater than 1.
     pub choices: Vec<ChatCompletionChunkChoice>,
     /// The Unix timestamp (in seconds) of when the chat completion was created. Each chunk has the same timestamp.
+    #[serde(default = "default_created")]
     pub created: u32,
     /// The model to generate the completion.
     pub model: String,
@@ -54,6 +56,14 @@ pub struct ChatCompletionChunkResponse {
     /// An optional field that will only be present when you set stream_options: {"include_usage": true} in your request. When present, it contains a null value except for the last chunk which contains the token usage statistics for the entire request.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub usage: Option<Usage>,
+}
+
+fn default_created() -> u32 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u32
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Builder, Clone, PartialEq)]
