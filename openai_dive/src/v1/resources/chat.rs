@@ -63,7 +63,7 @@ fn default_created() -> u32 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
-        .as_millis() as u32
+        .as_secs() as u32
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Builder, Clone, PartialEq)]
