@@ -18,6 +18,7 @@ pub struct ChatCompletionResponse {
     #[serde(default = "default_created")]
     pub created: u32,
     /// The model used for the chat completion.
+    #[serde(default = "default_model")]
     pub model: String,
     /// The service tier used for processing the request.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -45,6 +46,7 @@ pub struct ChatCompletionChunkResponse {
     #[serde(default = "default_created")]
     pub created: u32,
     /// The model to generate the completion.
+    #[serde(default = "default_model")]
     pub model: String,
     /// This fingerprint represents the backend configuration that the model runs with.
     /// Can be used in conjunction with the seed request parameter to understand when backend changes have been made that might impact determinism.
@@ -64,6 +66,10 @@ fn default_created() -> u32 {
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs() as u32
+}
+
+fn default_model() -> String {
+    "".to_string()
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Builder, Clone, PartialEq)]
