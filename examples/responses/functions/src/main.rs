@@ -1,6 +1,6 @@
 use ftail::Ftail;
 use openai_dive::v1::api::Client;
-use openai_dive::v1::models::CostOptimizedModel;
+use openai_dive::v1::models::Gpt5Model;
 use openai_dive::v1::resources::response::items::{FunctionToolCallOutput, InputItemStatus};
 use openai_dive::v1::resources::response::request::{
     InputItem, ResponseInput, ResponseInputItem, ResponseParametersBuilder,
@@ -17,7 +17,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new_from_env();
 
     let parameters = ResponseParametersBuilder::default()
-        .model(CostOptimizedModel::Gpt4OMini.to_string())
+        .model(Gpt5Model::Gpt5Mini.to_string())
         .input(ResponseInput::Text(
             "What is the weather like in Ho Chi Minh City today?".to_string(),
         ))
@@ -48,13 +48,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("{result:#?}");
 
-    let call = match &result.output[0] {
-        ResponseOutput::FunctionToolCall(call) => call,
-        _ => panic!("unexpected output"),
-    };
+    let call = result
+        .output
+        .iter()
+        .find_map(|item| {
+            if let ResponseOutput::FunctionToolCall(call) = item {
+                Some(call)
+            } else {
+                None
+            }
+        })
+        .expect("No FunctionToolCall found in output");
 
     let parameters = ResponseParametersBuilder::default()
-        .model(CostOptimizedModel::Gpt4OMini.to_string())
+        .model(Gpt5Model::Gpt5Mini.to_string())
         .input(ResponseInput::List(vec![ResponseInputItem::Item(
             InputItem::FunctionToolCallOutput(FunctionToolCallOutput {
                 id: None,

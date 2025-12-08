@@ -1,13 +1,13 @@
+use crate::v1::resources::response::items::ComputerToolCallOutput;
+use crate::v1::resources::shared::WebSearchContextSize;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::v1::resources::shared::WebSearchContextSize;
-
 use super::{
     items::{
-        FileSearchToolCall, FunctionToolCall, FunctionToolCallOutput, Message, Reasoning,
-        WebSearchToolCall,
+        ComputerToolCall, FileSearchToolCall, FunctionToolCall, FunctionToolCallOutput, Message,
+        Reasoning, WebSearchToolCall,
     },
     response::{ResponseReasoning, ResponseText, Role},
     shared::{ResponseTool, ResponseToolChoice, TruncationStrategy, WebSearchUserLocation},
@@ -22,6 +22,7 @@ pub struct ResponseParameters {
     /// Model ID used to generate the response.
     pub model: String,
     /// Reference to a prompt template and its variables.
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub prompt: Option<Prompt>,
     /// Specify additional output data to include in the model response.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -144,9 +145,9 @@ pub enum InputItem {
     #[serde(rename = "file_search_call")]
     FileSearchToolCall(FileSearchToolCall),
     #[serde(rename = "computer_call")]
-    ComputerToolCall,
+    ComputerToolCall(ComputerToolCall),
     #[serde(rename = "computer_call_output")]
-    ComputerToolCallOutput,
+    ComputerToolCallOutput(ComputerToolCallOutput),
     #[serde(rename = "web_search_call")]
     WebSearchToolCall(WebSearchToolCall),
     #[serde(rename = "function_call")]
@@ -174,7 +175,7 @@ pub enum ResponseInclude {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum ImageDetailLevel {
     High,
     Low,

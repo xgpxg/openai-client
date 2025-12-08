@@ -40,9 +40,12 @@ pub struct CreateImageParameters {
     /// This param is only supported for dall-e-3.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub style: Option<ImageStyle>,
-    /// A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse.
+    /// A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub user: Option<String>,
+    pub safety_identifier: Option<String>,
+    /// Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt_cache_key: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Builder, Clone, PartialEq)]
@@ -135,7 +138,7 @@ pub enum ImageSize {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum BackgroundStyle {
     Transparent,
     Opaque,
@@ -143,7 +146,7 @@ pub enum BackgroundStyle {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum ImageQuality {
     Standard,
     Hd,
@@ -153,7 +156,7 @@ pub enum ImageQuality {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum MimeType {
     #[serde(rename = "image/png")]
     Png,
@@ -166,7 +169,7 @@ pub enum MimeType {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum ImageStyle {
     Vivid,
     Natural,

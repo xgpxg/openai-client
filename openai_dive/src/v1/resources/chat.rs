@@ -133,6 +133,7 @@ pub struct ChatCompletionParameters {
     /// Setting to { "type": "json_object" } enables JSON mode, which ensures the message the model generates is valid JSON.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub response_format: Option<ChatCompletionResponseFormat>,
+    /// Deprecated (still used by vllm)
     /// This feature is in Beta. If specified, our system will make a best effort to sample deterministically,
     /// such that repeated requests with the same seed and parameters should return the same result.
     /// Determinism is not guaranteed, and you should refer to the system_fingerprint response parameter to monitor changes in the backend.
@@ -169,9 +170,12 @@ pub struct ChatCompletionParameters {
     /// Whether to enable parallel function calling during tool use.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parallel_tool_calls: Option<bool>,
-    /// A unique identifier representing your end-user, which can help OpenAI to monitor and detect abuse.
+    /// A stable identifier used to help detect users of your application that may be violating OpenAI's usage policies.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub user: Option<String>,
+    pub safety_identifier: Option<String>,
+    /// Used by OpenAI to cache responses for similar requests to optimize your cache hit rates.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt_cache_key: Option<String>,
     /// This tool searches the web for relevant results to use in a response.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub web_search_options: Option<WebSearchOptions>,
@@ -253,7 +257,7 @@ pub struct ChatCompletionTool {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(tag = "role", rename_all = "lowercase")]
+#[serde(tag = "role", rename_all = "snake_case")]
 pub enum ChatMessage {
     Developer {
         /// The contents of the developer message.
@@ -298,7 +302,7 @@ pub enum ChatMessage {
     },
     Tool {
         /// The contents of the tool message.
-        content: String,
+        content: ChatMessageContent,
         /// Tool call that this message is responding to.
         tool_call_id: String,
     },
@@ -326,6 +330,7 @@ impl ChatMessage {
             ChatMessage::Developer { content, .. }
             | ChatMessage::System { content, .. }
             | ChatMessage::User { content, .. }
+            | ChatMessage::Tool { content, .. }
             | ChatMessage::Assistant {
                 content: Some(content),
                 ..
@@ -337,7 +342,6 @@ impl ChatMessage {
                 }
             }
             ChatMessage::Assistant { content: None, .. } => None,
-            ChatMessage::Tool { content, .. } => Some(content),
         }
     }
 
@@ -354,7 +358,7 @@ impl ChatMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(tag = "role", rename_all = "lowercase")]
+#[serde(tag = "role", rename_all = "snake_case")]
 pub enum DeltaChatMessage {
     Developer {
         /// The contents of the developer message.
@@ -567,20 +571,20 @@ pub struct PredictedOutputArrayPart {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum PredictedOutputType {
     Content,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum Modality {
     Text,
     Audio,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum ImageUrlDetail {
     Auto,
     High,
@@ -676,13 +680,13 @@ impl Display for ChatMessageContent {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum ChatCompletionToolType {
     Function,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum ChatCompletionToolChoice {
     None,
     Auto,
@@ -700,13 +704,13 @@ pub struct WebSearchUserLocation {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum UserLocationType {
     Approximate,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum Voice {
     Alloy,
     Ash,
@@ -719,7 +723,7 @@ pub enum Voice {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum AudioFormat {
     Wav,
     Mp3,
@@ -758,7 +762,8 @@ impl DeltaFunction {
 mod tests {
     use crate::v1::resources::chat::{
         ChatCompletionResponseFormat, ChatCompletionToolChoice, ChatCompletionToolChoiceFunction,
-        ChatCompletionToolChoiceFunctionName, ChatCompletionToolType, JsonSchemaBuilder,
+        ChatCompletionToolChoiceFunctionName, ChatCompletionToolType, ChatMessage,
+        ChatMessageContent, ChatMessageContentPart, ChatMessageTextContentPart, JsonSchemaBuilder,
     };
     use serde_json;
 
@@ -829,5 +834,43 @@ mod tests {
         let deserialized: ChatCompletionToolChoice =
             serde_json::from_str(serialized.as_str()).unwrap();
         assert_eq!(deserialized, tool_choice)
+    }
+
+    #[test]
+    fn test_chat_message_tool_content_string_serialization_deserialization() {
+        let tool_message = ChatMessage::Tool {
+            content: ChatMessageContent::Text("tool_result".to_string()),
+            tool_call_id: "tool_call_id".to_string(),
+        };
+
+        let serialized = serde_json::to_string(&tool_message).unwrap();
+        assert_eq!(
+            serialized,
+            "{\"role\":\"tool\",\"content\":\"tool_result\",\"tool_call_id\":\"tool_call_id\"}"
+        );
+
+        let deserialized: ChatMessage = serde_json::from_str(serialized.as_str()).unwrap();
+        assert_eq!(deserialized, tool_message)
+    }
+
+    #[test]
+    fn test_chat_message_tool_content_array_serialization_deserialization() {
+        let content_array = vec![ChatMessageContentPart::Text(ChatMessageTextContentPart {
+            r#type: "text".to_string(),
+            text: "tool_result".to_string(),
+        })];
+        let tool_message = ChatMessage::Tool {
+            content: ChatMessageContent::ContentPart(content_array),
+            tool_call_id: "tool_call_id".to_string(),
+        };
+
+        let serialized = serde_json::to_string(&tool_message).unwrap();
+        assert_eq!(
+            serialized,
+            "{\"role\":\"tool\",\"content\":[{\"type\":\"text\",\"text\":\"tool_result\"}],\"tool_call_id\":\"tool_call_id\"}"
+        );
+
+        let deserialized: ChatMessage = serde_json::from_str(serialized.as_str()).unwrap();
+        assert_eq!(deserialized, tool_message)
     }
 }

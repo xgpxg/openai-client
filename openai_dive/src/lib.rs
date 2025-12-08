@@ -4,7 +4,7 @@
 //!
 //! ```ini
 //! [dependencies]
-//! openai_dive = "1.2"
+//! openai_dive = "1.3"
 //! ```
 //!
 //! ## Get started
@@ -40,6 +40,7 @@
 //! - [Responses](#responses)
 //! - [Images](#images)
 //! - [Audio](#audio)
+//! - [Videos](#videos)
 //! - [Models](#models)
 //! - [Files](#files)
 //! - [Embeddings](#embeddings)
@@ -61,7 +62,7 @@
 //!
 //! ```rust
 //! let parameters = ChatCompletionParametersBuilder::default()
-//!     .model(FlagshipModel::Gpt4O.to_string())
+//!     .model(Gpt4Model::Gpt4O.to_string())
 //!     .messages(vec![
 //!         ChatMessage::User {
 //!             content: ChatMessageContent::Text("Hello!".to_string()),
@@ -89,7 +90,7 @@
 //!
 //! ```rust
 //! let parameters = ChatCompletionParametersBuilder::default()
-//!     .model(FlagshipModel::Gpt4O.to_string())
+//!     .model(Gpt4Model::Gpt4O.to_string())
 //!     .messages(vec![
 //!         ChatMessage::User {
 //!             content: ChatMessageContent::Text("What is in this image?".to_string()),
@@ -128,7 +129,7 @@
 //! let recording = std::fs::read("example-audio.txt").unwrap();
 //!
 //! let parameters = ChatCompletionParametersBuilder::default()
-//!     .model(FlagshipModel::Gpt4OAudioPreview.to_string())
+//!     .model(Gpt4Model::Gpt4OAudioPreview.to_string())
 //!     .messages(vec![
 //!         ChatMessage::User {
 //!             content: ChatMessageContent::Text(
@@ -170,7 +171,7 @@
 //! }];
 //!
 //! let parameters = ChatCompletionParametersBuilder::default()
-//!     .model(FlagshipModel::Gpt4O.to_string())
+//!     .model(Gpt4Model::Gpt4O.to_string())
 //!     .messages(messages)
 //!     .tools(vec![ChatCompletionTool {
 //!         r#type: ChatCompletionToolType::Function,
@@ -363,6 +364,21 @@
 //! For more information see the examples in the [examples/audio](https://github.com/tjardoo/openai-client/tree/master/examples/audio) directory.
 //!
 //! More information [Audio](https://platform.openai.com/docs/api-reference/audio)
+//!
+//! ## Videos
+//!
+//! Create and remix videos.
+//!
+//! - Create video
+//! - Create remix
+//! - List videos
+//! - Retrieve video
+//! - Delete video
+//! - Retrieve video content
+//!
+//! For more information see the examples in the [examples/video](https://github.com/tjardoo/openai-client/tree/master/examples/video) directory.
+//!
+//! More information [Video](https://platform.openai.com/docs/api-reference/videos)
 //!
 //! ## Models
 //!
@@ -586,22 +602,17 @@
 //!
 //! You can use these predefined constants to set the model in the parameters or use any string representation (ie. for your custom models).
 //!
-//! #### Flagship Models
+//! #### GPT-5
+//!
+//! - Gpt51 (`gpt-5.1`)
+//! - Gpt5O (`gpt-5o`)
+//! - Gpt5OAudioPreview (`gpt-5o-audio-preview`)
+//!
+//! #### GPT-4
 //!
 //! - Gpt41 (`gpt-4.1`)
 //! - Gpt4O (`gpt-4o`)
 //! - Gpt4OAudioPreview (`gpt-4o-audio-preview`)
-//!
-//! #### Cost-Optimized Models
-//!
-//! - O4Mini (`o4-mini`)
-//! - Gpt41Nano (`gpt-4.1-nano`)
-//! - Gpt4OMini (`gpt-4o-mini`)
-//!
-//! #### Reasoning Models
-//!
-//! - O4Mini (`o4-mini`)
-//! - O3Mini (`o3-mini`)
 //!
 //! #### Tool Models
 //!
@@ -634,6 +645,11 @@
 //! - GptImage1 (`gpt-image-1`)
 //! - DallE3 (`dall-e-3`)
 //! - DallE2 (`dall-e-2`)
+//!
+//! #### Video Models
+//!
+//! - Sora2 (`sora-2`)
+//! - Sora2Pro (`sora-2-pro`)
 //!
 //! More information: [Models](https://platform.openai.com/docs/models)
 

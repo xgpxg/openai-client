@@ -1,8 +1,17 @@
-use std::collections::HashMap;
-
-use serde::{de::Visitor, ser::SerializeStruct, Deserialize, Serialize};
-
+#[cfg(feature = "stream")]
+use crate::v1::error::APIError;
+#[cfg(feature = "stream")]
+use crate::v1::resources::response::response::ResponseStreamEvent;
 use crate::v1::resources::shared::WebSearchContextSize;
+#[cfg(feature = "stream")]
+use futures::Stream;
+use serde::{de::Visitor, ser::SerializeStruct, Deserialize, Serialize};
+use std::collections::HashMap;
+#[cfg(feature = "stream")]
+use std::pin::Pin;
+
+#[cfg(feature = "stream")]
+pub type ResponseStream = Pin<Box<dyn Stream<Item = Result<ResponseStreamEvent, APIError>> + Send>>;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ResponseToolChoice {
@@ -59,7 +68,7 @@ pub struct WebSearchUserLocation {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum UserLocationType {
     Approximate,
 }
@@ -78,14 +87,14 @@ pub enum ResponseFormat {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum TruncationStrategy {
     Auto,
     Disabled,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum ComputerUseEnvironment {
     Browser,
     Mac,
@@ -122,7 +131,7 @@ pub enum ComparisonFilterValue {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum CompoundFilterType {
     And,
     Or,
