@@ -153,6 +153,7 @@ impl Audio<'_> {
             model: parameters.model,
             input: parameters.input,
             voice: parameters.voice,
+            voice_text: None,
             response_format: parameters.response_format,
             speed: parameters.speed,
             stream: true,
