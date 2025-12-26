@@ -6,9 +6,12 @@ use super::{
         FunctionToolCall, ImageGenerationCall, LocalShellCall, McpApprovalRequest, McpListTools,
         McpToolCall, Reasoning, WebSearchToolCall,
     },
-    shared::{Annotation, ResponseFormat, ResponseTool, ResponseToolChoice, TruncationStrategy},
+    shared::{
+        Annotation, ResponseFormat, ResponseTool, ResponseToolChoice, ResponseUsage,
+        TruncationStrategy,
+    },
 };
-use crate::v1::resources::shared::{ReasoningEffort, Usage};
+use crate::v1::resources::shared::ReasoningEffort;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -69,7 +72,7 @@ pub struct ResponseObject {
     pub truncation: Option<TruncationStrategy>,
     /// Represents token usage details.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub usage: Option<Usage>,
+    pub usage: Option<ResponseUsage>,
     /// A unique identifier representing your end-user.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<String>,
@@ -182,6 +185,8 @@ pub enum OutputContent {
         text: String,
         annotations: Vec<Annotation>,
     },
+    #[serde(rename = "reasoning_text")]
+    ReasoningText { text: String },
     #[serde(rename = "refusal")]
     Refusal { refusal: String },
 }
@@ -258,6 +263,26 @@ pub enum ResponseStreamEvent {
     /// response.content_part.done - A content part is done
     #[serde(rename = "response.content_part.done")]
     ResponseContentPartDone {
+        sequence_number: u32,
+        item_id: String,
+        output_index: usize,
+        content_index: usize,
+        part: OutputContent,
+    },
+
+    // Reasoning parts events
+    /// response.reasoning_part.added - A new reasoning part was added
+    #[serde(rename = "response.reasoning_part.added")]
+    ResponseReasoningPartAdded {
+        sequence_number: u32,
+        item_id: String,
+        output_index: usize,
+        content_index: usize,
+        part: OutputContent,
+    },
+    /// response.reasoning_part.done - A reasoning part is done
+    #[serde(rename = "response.reasoning_part.done")]
+    ResponseReasoningPartDone {
         sequence_number: u32,
         item_id: String,
         output_index: usize,
@@ -616,6 +641,8 @@ impl ResponseStreamEvent {
             Self::ResponseOutputItemDone { .. } => "response.output_item.done",
             Self::ResponseContentPartAdded { .. } => "response.content_part.added",
             Self::ResponseContentPartDone { .. } => "response.content_part.done",
+            Self::ResponseReasoningPartAdded { .. } => "response.reasoning_part.added",
+            Self::ResponseReasoningPartDone { .. } => "response.reasoning_part.done",
             Self::ResponseOutputTextDelta { .. } => "response.output_text.delta",
             Self::ResponseOutputTextDone { .. } => "response.output_text.done",
             Self::ResponseOutputTextAnnotationAdded { .. } => {
