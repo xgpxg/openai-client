@@ -15,22 +15,48 @@ use std::pin::Pin;
 
 pub struct Audio<'a> {
     pub client: &'a Client,
+    /// A converter for request parameters, needed because some providers have different parameter formats.
+    /// We need to convert OpenAI format -> Non OpenAI format
+    pub request_converter: Option<Box<dyn Fn(&Value) -> Value + Send + Sync>>,
 }
 
 impl Client {
     /// Learn how to turn audio into text or text into audio.
     pub fn audio(&self) -> Audio<'_> {
-        Audio { client: self }
+        Audio {
+            client: self,
+            request_converter: None,
+        }
     }
 }
 
 impl Audio<'_> {
+    /// Set a converter for request parameters.
+    /// Before sending the request, we convert the parameters to the format needed by the provider.
+    pub fn set_request_converter(
+        &mut self,
+        converter: Box<dyn Fn(&Value) -> Value + Send + Sync>,
+    ) -> &mut Self {
+        self.request_converter = Some(converter);
+        self
+    }
     /// Generates audio from the input text.
     pub async fn create_speech(
         &self,
         parameters: AudioSpeechParameters,
     ) -> Result<AudioSpeechResponse, APIError> {
-        let bytes = self.client.post_raw("/audio/speech", &parameters).await?;
+        let bytes = match &self.request_converter {
+            Some(converter) => {
+                let params_value = serde_json::to_value(&parameters)
+                    .map_err(|e| APIError::ParseError(e.to_string()))?;
+                let converted_params = converter(&params_value);
+                self.client
+                    .post_raw("/audio/speech", &converted_params)
+                    .await?
+            }
+            None => self.client.post_raw("/audio/speech", &parameters).await?,
+        };
+        // let bytes = self.client.post_raw("/audio/speech", &parameters).await?;
 
         Ok(AudioSpeechResponse { bytes })
     }
