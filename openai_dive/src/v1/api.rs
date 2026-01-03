@@ -5,7 +5,7 @@ use bytes::Bytes;
 use futures::{stream::StreamExt, Stream};
 use reqwest::{multipart::Form, Method, RequestBuilder};
 #[cfg(feature = "stream")]
-use reqwest_eventsource::{Event, EventSource, RequestBuilderExt};
+use aha_reqwest_eventsource::{Event, EventSource, RequestBuilderExt};
 #[cfg(feature = "stream")]
 use serde::de::DeserializeOwned;
 use serde::Serialize;
