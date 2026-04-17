@@ -26,7 +26,7 @@ pub struct Usage {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct InputTokensDetails {
     /// The number of tokens that were retrieved from the cache.
-    pub cached_tokens: u32,
+    pub cached_tokens: Option<u32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -41,7 +41,7 @@ pub struct PromptTokensDetails {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub audio_tokens: Option<u32>,
     /// Cached tokens present in the prompt.
-    pub cached_tokens: u32,
+    pub cached_tokens: Option<u32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
