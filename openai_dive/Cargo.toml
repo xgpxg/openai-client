@@ -9,7 +9,7 @@ documentation = "https://docs.rs/openai_dive"
 keywords = ["openai", "async", "ai", "chatgpt"]
 
 [dependencies]
-reqwest = { version = "0.12", optional = true, default-features = false, features = [
+reqwest = { version = "0.13", optional = true, default-features = false, features = [
     "json",
     "stream",
     "multipart",
